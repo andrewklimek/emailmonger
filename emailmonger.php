@@ -1,9 +1,11 @@
 <?php
 /*
 Plugin Name: Email Monger
-Description: Basic email tools
-Version:     0.1
+plugin URI:  https://github.com/andrewklimek/emailmonger
+Description: Email tools
+Version:     0.3.0-beta
 Author:      Andrew J Klimek
+Author URI:  https://readycat.net/
 License:     GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
