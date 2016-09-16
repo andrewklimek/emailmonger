@@ -3,7 +3,7 @@
 Plugin Name: Email Monger
 plugin URI:  https://github.com/andrewklimek/emailmonger
 Description: Email tools
-Version:     0.3.0-beta
+Version:     0.4.0-beta
 Author:      Andrew J Klimek
 Author URI:  https://readycat.net/
 License:     GPL2
@@ -23,25 +23,29 @@ You should have received a copy of the GNU General Public License
 along with Email Monger. If not, see https://www.gnu.org/licenses/gpl-2.0.html.
 */
 
-// TODO SMTP
-function emailmonger_smtp( $phpmailer ) {
-  var_export( $phpmailer );
-	$phpmailer->isSMTP();
-	$phpmailer->Host = 'smtp.gmail.com';
-	$phpmailer->Port = 587;
-	$phpmailer->SMTPSecure = 'tls';
-	$phpmailer->SMTPAuth = true; // Force it to use Username and Password to authenticate
-	//$phpmailer->SMTPKeepAlive = true; // SMTP connection will not close after each email sent, reduces SMTP overhead
-	$phpmailer->Username = 'andrew.klimek@gmail.com';
-	$phpmailer->Password = 'amhsbbgxtpwtkuic';
-}
-//add_action( 'phpmailer_init', 'emailmonger_smtp' );
+add_action( 'admin_menu', 'emailmonger_admin_menu' );
+add_action( 'phpmailer_init', 'emailmonger_smtp' );
+add_action( 'admin_init', 'emailmonger_settings_smtp' );
+add_action( 'admin_init', 'emailmonger_settings_regemail' );
 
 
-// add the admin menu option
-add_action( 'admin_menu', function(){
+/****
+*
+* Register admin pages
+*
+****/
+function emailmonger_admin_menu() {
 	add_submenu_page( 'options-general.php', 'Email', 'Email', 'edit_users', 'emailmonger', 'emailmonger_settings_page' );
-});
+	add_submenu_page( 'tools.php', 'Test Email', 'Test Email', 'edit_users', 'emailmonger-test', 'emailmonger_test' );
+}
+
+
+
+/****
+*
+* Settings > Email
+*
+****/
 
 function emailmonger_settings_page() {
 ?>
@@ -56,8 +60,114 @@ function emailmonger_settings_page() {
 <?php
 }
 
+/****
+*
+* Settings > Email > SMTP
+*
+****/
 
-function emailmonger_settings_init() {
+function emailmonger_settings_smtp() {
+
+	// New Registration Section
+	$section = 'emailmonger_smtp';
+	$settings = get_option( $section );
+	$defaults = array(
+		"host" => "mail.example.com",
+		"port" => "587",
+		"protocol" => "tls",
+		"username" => "user@example.com",
+		"password" => ""
+	);
+	$settings = $settings ? array_merge( $defaults, array_filter( $settings) ) : $defaults;
+	
+
+	add_settings_section(
+		$section,
+		'SMTP',
+		$section .'_callback',
+		'emailmonger'
+	);
+	
+	$field = 'host';
+	add_settings_field(
+		"{$section}_{$field}",
+		'Host',
+		'emailmonger_setting_callback_text',
+		'emailmonger',
+		$section,
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
+	);
+	
+	$field = 'port';
+	add_settings_field(
+		"{$section}_{$field}",
+		'Port',
+		'emailmonger_setting_callback_number',
+		'emailmonger',
+		$section,
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
+	);
+	
+	$field = 'protocol';
+	add_settings_field(
+		"{$section}_{$field}",
+		'Protocol',
+		'emailmonger_setting_callback_protocol',
+		'emailmonger',
+		$section,
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
+	);
+	
+	$field = 'username';
+	add_settings_field(
+		"{$section}_{$field}",
+		'Username',
+		'emailmonger_setting_callback_text',
+		'emailmonger',
+		$section,
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
+	);
+	
+	$field = 'password';
+	add_settings_field(
+		"{$section}_{$field}",
+		'Password',
+		'emailmonger_setting_callback_password',
+		'emailmonger',
+		$section,
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
+	);
+
+	register_setting( 'emailmonger', $section );
+}
+
+function emailmonger_smtp( $phpmailer ) {
+	
+	$settings = get_option( 'emailmonger_smtp' );
+	
+	// check for blank options
+	if ( $settings !== array_filter($settings) ) return;
+	
+	$phpmailer->isSMTP();
+	$phpmailer->Host = $settings['host'];
+	$phpmailer->Port = $settings['port'];
+	$phpmailer->SMTPSecure = $settings['protocol'];
+	$phpmailer->SMTPAuth = true; // Force it to use Username and Password to authenticate
+	//$phpmailer->SMTPKeepAlive = true; // SMTP connection will not close after each email sent, reduces SMTP overhead
+	$phpmailer->Username = $settings['username'];
+	$phpmailer->Password = $settings['password'];
+	
+}
+
+
+/****
+*
+* Settings > Email > Registration Email
+*
+****/
+
+
+function emailmonger_settings_regemail() {
 
 	// New Registration Section
 	$section = 'emailmonger_regemail';
@@ -75,39 +185,44 @@ function emailmonger_settings_init() {
 		$section .'_callback',
 		'emailmonger'
 	);
+	
+	$field = 'usersubject';
 	add_settings_field(
-		$section .'_usersubject',
+		"{$section}_{$field}",
 		'Subject to New User',
 		'emailmonger_setting_callback_text',
 		'emailmonger',
 		$section,
-		array(
-			'label_for' => 'emailmonger_regemail_usersubject',
-			'name' => $section ."[usersubject]",
-			'value' => $settings['usersubject'],
-		)
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
 	);
+
+	$field = 'usermessage';
 	add_settings_field(
-		$section .'_usermessage',
+		"{$section}_{$field}",
 		'Email to New User',
 		'emailmonger_setting_callback_textarea',
 		'emailmonger',
 		$section,
-		array(
-			'label_for' => 'emailmonger_regemail_usermessage',
-			'name' => $section ."[usermessage]",
-			'value' => $settings['usermessage'],
-		)
+		array( 'label_for' => "{$section}_{$field}", 'name' => "{$section}[{$field}]", 'value' => $settings[$field] )
 	);
+
 	register_setting( 'emailmonger', $section );
 }
-add_action( 'admin_init', 'emailmonger_settings_init' );
 
+/****
+*
+* Section & Field Callbacks
+*
+****/
 
+function emailmonger_smtp_callback() {
+	echo "<p>Some help text</p>";
+}
 
 function emailmonger_regemail_callback() {
 	echo "<p>You can use shortcodemerge fields: <code>[sitename]</code> <code>[username]</code> <code>[email]</code> <code>[set_password_url]</code> and <code>[login_url]</code></p>";
 }
+
 function emailmonger_setting_callback_text( $args ) {
 	printf(
 		'<input type="text" name="%s" id="%s" value="%s" class="regular-text">',
@@ -116,6 +231,7 @@ function emailmonger_setting_callback_text( $args ) {
 		$args['value']
 	);
 }
+
 function emailmonger_setting_callback_textarea( $args ) {
 	printf(
 		'<textarea name="%s" id="%s" rows="10" class="large-text code">%s</textarea>',
@@ -125,7 +241,41 @@ function emailmonger_setting_callback_textarea( $args ) {
 	);
 }
 
+function emailmonger_setting_callback_protocol( $args ) {
 
+	print "<select name='{$args['name']}' id='{$args['label_for']}'>";
+	print "<option value='tls'";
+	if ( $args['value'] == 'tls' ) print " selected";
+	print ">TLS</option> <option value='ssl'";
+	if ( $args['value'] == 'ssl' ) print " selected";
+	print ">SSL</option> </select>";
+}
+
+
+function emailmonger_setting_callback_number( $args ) {
+	printf(
+		'<input type="number" name="%s" id="%s" value="%s" class="regular-text">',
+		$args['name'],
+		$args['label_for'],
+		$args['value']
+	);
+}
+
+function emailmonger_setting_callback_password( $args ) {
+	printf(
+		'<input type="password" name="%s" id="%s" value="%s" class="regular-text">',
+		$args['name'],
+		$args['label_for'],
+		$args['value']
+	);
+}
+
+/****
+*
+* Pluggable new user notification
+* uses template set in Settings > Email > Registration Email
+*
+****/
 
 if ( !function_exists('wp_new_user_notification') ) :
 /**
@@ -217,15 +367,13 @@ function wp_new_user_notification( $user_id, $deprecated = null, $notify = '' ) 
 endif;
 
 
-
-
-// add the admin menu option
-add_action( 'admin_menu', function(){
-	add_submenu_page( 'tools.php', 'Test Email', 'Test Email', 'edit_users', 'emailmonger-test', 'emailmonger_test' );
-});
+/****
+*
+* Tools > Test Email
+*
+****/
 
 function emailmonger_test() {
-	global $current_user;
 
 	echo '
 	<style>
@@ -283,7 +431,7 @@ function emailmonger_test() {
 	if ( !empty( $_POST["emailmonger_from"] ) ) {
 		echo $_POST["emailmonger_from"];
 	} else {
-		echo $current_user->user_email;
+		echo get_option( 'admin_email' );
 	}
 	echo '" class="text"  /></p>
 		<p><label for="emailmonger_to">To</label>
@@ -342,3 +490,4 @@ function emailmonger_send($to, $headers = array() ) {
 	wp_mail( $to, $subject, $message, $headers );
 	return $headers;
 }
+
