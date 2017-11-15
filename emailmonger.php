@@ -5,7 +5,7 @@ plugin URI:  https://github.com/andrewklimek/emailmonger
 Description: Email tools
 Version:     0.4.0-beta
 Author:      Andrew J Klimek
-Author URI:  https://readycat.net/
+Author URI:  https://github.com/andrewklimek/
 License:     GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
