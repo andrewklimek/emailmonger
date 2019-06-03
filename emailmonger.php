@@ -146,7 +146,7 @@ function emailmonger_smtp( $phpmailer ) {
 	$settings = get_option( 'emailmonger_smtp' );
 	
 	// check for blank options
-	if ( $settings !== array_filter($settings) ) return;
+	if ( ! $settings || $settings !== array_filter($settings) ) return;
 	
 	$phpmailer->isSMTP();
 	$phpmailer->Host = $settings['host'];
